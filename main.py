@@ -26,20 +26,12 @@ def load_data (directory):
 train_texts, train_labels = load_data("extracted_files/aclImdb/train")
 test_texts, test_labels = load_data("extracted_files/aclImdb/test")
 
-# Combine data
-texts = train_texts + test_texts
-labels = np.concatenate([train_labels, test_labels])
-
-# Split into train/val/test (80-10-10)
-
-# Split into train/val (80-20)
+# Split original TRAIN data into train/val (80-20)
 train_texts, val_texts, train_labels, val_labels = train_test_split(
-    texts, labels, test_size=0.2, random_state=42
+    train_texts, train_labels,
+    test_size=0.2,
+    random_state=42
 ) 
-# Split into val/test (10-10)
-val_texts, test_texts, val_labels, test_labels = train_test_split(
-    val_texts, val_labels, test_size=0.5, random_state=42
-)
 
 # Prepocessing (Removing HTML tags and only including alphanumericals characters in text)
 def preprocess_text(text):
@@ -49,22 +41,22 @@ def preprocess_text(text):
     text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower())
     return text
 
-# Clean all texts
+# Clean texts in all splits
 train_texts = [preprocess_text(text) for text in train_texts]
 val_texts = [preprocess_text(text) for text in val_texts]
 test_texts = [preprocess_text(text) for text in test_texts]
 
-# Tokenize and sequence
+# Tokenizer only sees training data now
 tokenizer = Tokenizer(num_words=10000)  # Keep top 10k words
-tokenizer.fit_on_texts(train_texts)     # Learn vocabulary from training data
+tokenizer.fit_on_texts(train_texts)     # Learn vocabulary from training data (This fits only on training data to keep bias 0)
 
-# Convert texts to sequences
-train_sequences = tokenizer.texts_to_sequences(train_texts)     # Convert text to integers
-val_sequences = tokenizer.texts_to_sequences(val_texts)         # Convert text to integers
-test_sequences = tokenizer.texts_to_sequences(test_texts)       # Convert text to integers
+# Convert texts to sequences (Converts text to integers)
+train_sequences = tokenizer.texts_to_sequences(train_texts)     
+val_sequences = tokenizer.texts_to_sequences(val_texts)         
+test_sequences = tokenizer.texts_to_sequences(test_texts)       
 
 # Pad sequences to uniform length
-maxlen = 200  # Truncate/pad to 200 tokens
+maxlen = 200  # Truncate/pad to 200 tokens for all splits
 X_train = pad_sequences(train_sequences, maxlen=maxlen)
 X_val = pad_sequences(val_sequences, maxlen=maxlen)
 X_test = pad_sequences(test_sequences, maxlen=maxlen)
@@ -94,8 +86,9 @@ history = model.fit(
 
 # Evaluate on test set
 test_loss, test_acc = model.evaluate(X_test, test_labels)
-print(f"Test Accuracy: {test_acc:.4f}")
+print(f"Final Test Accuracy: {test_acc:.4f}")
 
+# Preprocesses input text, converts to tokens and classifies sentiment
 def predict_sentiment(text):
     text = preprocess_text(text)
     sequence = tokenizer.texts_to_sequences([text])
@@ -103,6 +96,7 @@ def predict_sentiment(text):
     prediction = model.predict(padded)
     return "Positive" if prediction > 0.5 else "Negative", prediction[0][0]
 
-sample_text = "I don't like this movie, it is really bad"
+# Example
+sample_text = "This movie was an amazing masterpiece that I'll never forget!"
 sentiment, confidence = predict_sentiment(sample_text)
 print(f"Sentiment: {sentiment} (Confidence: {confidence:.2f})")
