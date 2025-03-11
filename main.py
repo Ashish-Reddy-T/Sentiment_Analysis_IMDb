@@ -61,12 +61,17 @@ X_train = pad_sequences(train_sequences, maxlen=maxlen)
 X_val = pad_sequences(val_sequences, maxlen=maxlen)
 X_test = pad_sequences(test_sequences, maxlen=maxlen)
 
+# Convert labels to numpy arrays explicitly
+train_labels = np.array(train_labels)
+val_labels = np.array(val_labels)
+test_labels = np.array(test_labels)
+
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, LSTM, Dense
 
 model = Sequential([
-    Embedding(input_dim=10000, output_dim=128, input_length=maxlen),        # Converts integer toxens to dense vectors
+    Embedding(input_dim=10000, output_dim=128),        # Converts integer toxens to dense vectors
     LSTM(64, dropout=0.2, recurrent_dropout=0.2),                           # LSTM with regularization
     Dense(1, activation="sigmoid")                                          # Binary classification
 ])
@@ -76,6 +81,10 @@ model.compile(
     loss="binary_crossentropy",
     metrics=["accuracy"]
 )
+
+print("Input shapes:")
+print(f"X_train shape: {X_train.shape}")
+print(f"train_labels shape: {train_labels.shape}")
 
 history = model.fit(
     X_train, train_labels,
