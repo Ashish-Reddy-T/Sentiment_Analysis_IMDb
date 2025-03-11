@@ -26,18 +26,22 @@ def load_data (directory):
 train_texts, train_labels = load_data("extracted_files/aclImdb/train")
 test_texts, test_labels = load_data("extracted_files/aclImdb/test")
 
-# Combine and split (if needed)
+# Combine data
 texts = train_texts + test_texts
 labels = np.concatenate([train_labels, test_labels])
 
 # Split into train/val/test (80-10-10)
+
+# Split into train/val (80-20)
 train_texts, val_texts, train_labels, val_labels = train_test_split(
     texts, labels, test_size=0.2, random_state=42
-)
+) 
+# Split into val/test (10-10)
 val_texts, test_texts, val_labels, test_labels = train_test_split(
     val_texts, val_labels, test_size=0.5, random_state=42
 )
 
+# Prepocessing (Removing HTML tags and only including alphanumericals characters in text)
 def preprocess_text(text):
     # Remove HTML tags
     text = re.sub(r"<[^>]+>", "", text)
@@ -52,12 +56,12 @@ test_texts = [preprocess_text(text) for text in test_texts]
 
 # Tokenize and sequence
 tokenizer = Tokenizer(num_words=10000)  # Keep top 10k words
-tokenizer.fit_on_texts(train_texts)
+tokenizer.fit_on_texts(train_texts)     # Learn vocabulary from training data
 
 # Convert texts to sequences
-train_sequences = tokenizer.texts_to_sequences(train_texts)
-val_sequences = tokenizer.texts_to_sequences(val_texts)
-test_sequences = tokenizer.texts_to_sequences(test_texts)
+train_sequences = tokenizer.texts_to_sequences(train_texts)     # Convert text to integers
+val_sequences = tokenizer.texts_to_sequences(val_texts)         # Convert text to integers
+test_sequences = tokenizer.texts_to_sequences(test_texts)       # Convert text to integers
 
 # Pad sequences to uniform length
 maxlen = 200  # Truncate/pad to 200 tokens
@@ -70,9 +74,9 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, LSTM, Dense
 
 model = Sequential([
-    Embedding(input_dim=10000, output_dim=128, input_length=maxlen),
-    LSTM(64, dropout=0.2, recurrent_dropout=0.2),
-    Dense(1, activation="sigmoid")
+    Embedding(input_dim=10000, output_dim=128, input_length=maxlen),        # Converts integer toxens to dense vectors
+    LSTM(64, dropout=0.2, recurrent_dropout=0.2),                           # LSTM with regularization
+    Dense(1, activation="sigmoid")                                          # Binary classification
 ])
 
 model.compile(
@@ -99,6 +103,6 @@ def predict_sentiment(text):
     prediction = model.predict(padded)
     return "Positive" if prediction > 0.5 else "Negative", prediction[0][0]
 
-sample_text = "This movie was a fantastic blend of action and emotion!"
+sample_text = "I don't like this movie, it is really bad"
 sentiment, confidence = predict_sentiment(sample_text)
 print(f"Sentiment: {sentiment} (Confidence: {confidence:.2f})")
